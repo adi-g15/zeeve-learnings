@@ -1,3 +1,9 @@
 [submodule "notes-repo"]
 	path = notes-repo
 	url = https://github.com/adi-g15/notes
+[submodule "sawtooth-sdk-rust"]
+	path = sawtooth-sdk-rust
+	url = https://github.com/hyperledger/sawtooth-sdk-rust
+[submodule "sawtooth-core"]
+	path = sawtooth-core
+	url = https://github.com/hyperledger/sawtooth-core
