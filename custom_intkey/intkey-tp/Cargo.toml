@@ -16,7 +16,7 @@
 
 
 [package]
-name = "sawtooth-intkey-tp-rust"
+name = "custom-intkey-tp-rust"
 version = "0.5.2"
 authors = ["Bitwise IO, Inc."]
 
@@ -29,7 +29,6 @@ name = "sawtooth_intkey"
 path = "src/lib.rs"
 
 [dependencies]
-sawtooth-sdk = { path = "../.." }
 rust-crypto = "0.2"
 clap = "2"
 log = "0.4"
