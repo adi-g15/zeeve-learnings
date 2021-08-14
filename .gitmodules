@@ -13,3 +13,6 @@
 [submodule "the-os-cashier"]
 	path = the-os-cashier
 	url = https://github.com/adi-g15/the-os-cashier
+[submodule "sawtooth-explorer"]
+	path = sawtooth-explorer
+	url = https://github.com/hyperledger/sawtooth-explorer
