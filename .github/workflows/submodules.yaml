@@ -11,6 +11,7 @@ jobs:
         - sawtooth-core
         - notes-repo
         - custom-intkey
+        - the-os-cashier
         # - sawtooth-sdk-rust # be it where it was, when i created the project
   submodule_update:
     runs-on: ubuntu-latest

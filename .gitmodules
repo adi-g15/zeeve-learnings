@@ -10,3 +10,6 @@
 [submodule "custom-intkey"]
 	path = custom-intkey
 	url = https://github.com/adi-g15/sawtooth-intkey
+[submodule "the-os-cashier"]
+	path = the-os-cashier
+	url = https://github.com/adi-g15/the-os-cashier
