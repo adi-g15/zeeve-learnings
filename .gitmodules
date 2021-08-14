@@ -7,6 +7,6 @@
 [submodule "sawtooth-core"]
 	path = sawtooth-core
 	url = https://github.com/hyperledger/sawtooth-core
-[submodule "custom_intkey"]
-	path = custom_intkey
+[submodule "custom-intkey"]
+	path = custom-intkey
 	url = https://github.com/adi-g15/sawtooth-intkey

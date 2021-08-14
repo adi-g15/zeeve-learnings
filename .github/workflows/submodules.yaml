@@ -1,0 +1,23 @@
+name: Submodule Sync
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch: ~
+
+jobs:
+  strategy:
+    matrix:
+      submodule_path:
+        - sawtooth-core
+        - notes-repo
+        - custom-intkey
+        # - sawtooth-sdk-rust # be it where it was, when i created the project
+  submodule_update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mheap/submodule-sync-action@v1
+        with:
+          path: ${{ matrix.submodule_path }}
+          ref: main
+          pr_branch: automated-submodule-update
+          target_branch: main
