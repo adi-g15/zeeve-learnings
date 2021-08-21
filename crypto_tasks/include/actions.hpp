@@ -4,6 +4,8 @@
 #include <cassert>
 #include <map>
 
+#include "rust-ffi.h"
+
 namespace message {
 	bool _is_encodable(const std::string& str) {
 		/*current encoder decorder don't support messages with these chars as it disrupts message structure*/
@@ -28,7 +30,7 @@ namespace message {
 		std::map<std::string, std::string> out;
 
 		for(auto i = str.cbegin(); i != str.cend(); ++i ) {
-
+			// TODO	
 		}
 
 		return out;
@@ -47,7 +49,10 @@ namespace message {
 	}
 
 	std::string hash(const std::string& str) {
-		return str;		
+		uint8_t hash_buffer[64];
+		get_hash(str.data(), hash_buffer);
+
+		return str;
 	}
 
 	std::string sign(const std::string& str) {
