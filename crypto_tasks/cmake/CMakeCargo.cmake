@@ -1,3 +1,4 @@
+# Original Source: https://github.com/Devolutions/CMakeRust
 function(cargo_build)
     cmake_parse_arguments(CARGO "" "NAME" "" ${ARGN})
     string(REPLACE "-" "_" LIB_NAME ${CARGO_NAME})
@@ -62,7 +63,7 @@ function(cargo_build)
         COMMAND ${CARGO_ENV_COMMAND} ${CARGO_EXECUTABLE} ARGS ${CARGO_ARGS}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         DEPENDS ${LIB_SOURCES}
-        COMMENT "running cargo")
+	COMMENT "Running cargo")
     add_custom_target(${CARGO_NAME}_target ALL DEPENDS ${LIB_FILE})
     add_library(${CARGO_NAME} STATIC IMPORTED GLOBAL)
     add_dependencies(${CARGO_NAME} ${CARGO_NAME}_target)

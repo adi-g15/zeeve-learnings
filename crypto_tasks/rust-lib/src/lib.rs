@@ -1,7 +1,7 @@
 use libc::{c_char, size_t};
 use std::ffi::CStr;
 
-fn get_byte_hash(bytes: &[u8]) -> [u8;64] {
+pub fn get_byte_hash(bytes: &[u8]) -> [u8;64] {
     openssl::sha::sha512( bytes )
 }
 

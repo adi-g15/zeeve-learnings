@@ -6,7 +6,7 @@
 using namespace std::chrono_literals;
 
 void process_request( zmq::message_t& request ) {
-	std::cout << request.to_string() << std::endl;
+	std::cout << "Received:\n" << request.to_string() << std::endl;
 }
 
 int main () {

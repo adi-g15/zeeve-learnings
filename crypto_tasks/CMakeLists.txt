@@ -32,6 +32,12 @@ target_link_libraries(client m c System resolv)
 target_link_libraries(server m c System resolv)
 endif()
 
-target_link_libraries(client cppzmq rust-lib)
-target_link_libraries(server cppzmq rust-lib)
+find_package(openssl)
+find_package(ssl)
+find_package(crypto)
+find_package(dl)	# dlsym symbol not found error
+find_package(Threads REQUIRED)
+
+target_link_libraries(client dl Threads::Threads ssl crypto cppzmq rust-lib)
+target_link_libraries(server Threads::Threads ssl crypto cppzmq rust-lib)
 
