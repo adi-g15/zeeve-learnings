@@ -1,17 +1,37 @@
 #include <cstdint>
 #include <ios>
+#include <memory>
+#include <openssl/ossl_typ.h>
 #include <sstream>
 #include <iomanip>
+#include <stdexcept>
 #include <string>
 #include <algorithm>
 #include <string_view>
 #include <cassert>
 #include <map>
 #include <vector>
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include "rust-ffi.h"
 
 namespace util {
+	std::vector<uint8_t> get_random_bytes(int n) {
+		std::vector<uint8_t> buff(n);
+		RAND_poll();
+		RAND_bytes(buff.data(), n);
+
+		return buff;
+	}
+
+	/*
+	 * Note: 1 byte is represented by 2 characters in hex string
+	 *
+	 * So the string returned has 2*bytes.size() characters
+	 * */
 	std::string bytes_to_hex_string(const std::vector<uint8_t>& bytes) {
 		std::stringstream ss;
 		ss << std::hex;
@@ -32,8 +52,7 @@ namespace message {
 				});
 	}
 
-	std::string encode (const std::string& str) { return str; }
-	std::string encode (const std::map<std::string,std::string>& mapping) {
+	std::string serialise (const std::map<std::string,std::string>& mapping) {
 		std::string encoded = "";
 		for( auto& p : mapping ) {
 			/*assert that the data is okay to encode and can be decoded exactly same later*/
@@ -44,7 +63,7 @@ namespace message {
 		return encoded;
 	}
 
-	std::map<std::string,std::string> decode (const std::string& str) {
+	std::map<std::string,std::string> deserialise (const std::string& str) {
 		std::map<std::string, std::string> out;
 
 		for(auto i = str.cbegin(); i != str.cend(); ++i ) {
@@ -54,16 +73,110 @@ namespace message {
 		return out;
 	}
 
-	std::string encrypt(const std::string& str) {
+	std::string encode(const std::string& str) {
 		std::string out(str);
 		std::for_each(out.begin(), out.end(), [](char& c){ c += 1; });
 		return out;
 	}
 
-	std::string decrypt(const std::string& str) {
+	std::string decode(const std::string& str) {
 		std::string out(str);
 		std::for_each(out.begin(), out.end(), [](char& c){ c -= 1; });
 		return out;
+	}
+
+	struct _Data {
+		std::vector<uint8_t> key;
+		std::vector<uint8_t> IV;
+		std::vector<uint8_t> message;	/*Can be encrypted message, or decrypted*/
+	};
+	_Data encrypt_bytes(const std::vector<uint8_t>& bytes) {
+		using byte = uint8_t;
+
+		ERR_load_crypto_strings();	// Load human readable error strings for libcrypto
+		EVP_add_cipher( EVP_aes_256_cbc() );	// Load the necessary cipher
+
+		constexpr int KEY_SIZE = 32;	// 256 BIT key... 32 bytes
+		constexpr int BLOCK_SIZE = 16;
+		constexpr int IV_SIZE = BLOCK_SIZE;	// 128 BIT... 16 bytes
+		// constexpr int MAX_PADDING = BLOCK_SIZE - 1;
+
+		auto key = util::get_random_bytes(KEY_SIZE); 
+		auto iv = util::get_random_bytes(IV_SIZE);	// Initialisation vector
+
+		auto cipher_text = std::vector<byte>(bytes.size() + BLOCK_SIZE);	// Cipher text expands upto BLOCK_SIZE
+		
+		using CIPHER_CTX = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
+
+		// Encryption starts here...
+		auto context = CIPHER_CTX{ EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free };
+		if( !context ) throw std::runtime_error("COULDN'T CREATE CONTEXT");
+
+		/*Initialise the encryption operation*/
+		if(
+			EVP_EncryptInit_ex(context.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data())
+			!= 1
+		  ) throw std::runtime_error("Failed to initialise encryption operation");
+
+		int len1 = cipher_text.size(), len2;
+		if(
+				/*WARN: the third argument must not be just .size(), since it is to be modified variable*/
+			EVP_EncryptUpdate(context.get(), cipher_text.data(), &len1, bytes.data(), bytes.size())
+			!= 1
+		) throw std::runtime_error("Failed to encrypt");
+
+		len2 = cipher_text.size() - len1;	// ie. the additional space we still have in the buffer... I think it's for "padding"
+
+		if (
+			EVP_EncryptFinal_ex(context.get(), cipher_text.data() + len1, &len2)	/*I think it's for padding, they did state it, but not directly here,... https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption*/
+			!= 1
+		) throw std::runtime_error("Failed to finalize encryption");
+
+		cipher_text.resize(len1 + len2);
+
+		EVP_cleanup();
+
+		return {
+			key,
+			iv,
+			cipher_text
+		};
+	}
+
+	std::vector<uint8_t> decrypt_bytes(const std::vector<uint8_t> &encrypted_bytes, const std::vector<uint8_t> &key, const std::vector<uint8_t> &iv) {
+		ERR_load_crypto_strings();
+		EVP_add_cipher(EVP_aes_256_cbc());
+
+		std::vector<uint8_t> decrypted( encrypted_bytes.size() );
+
+		using CIPHER_CTX = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
+		
+		auto context = CIPHER_CTX{ EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free };
+		
+		if (!context) throw std::runtime_error("Couldn't create context");
+
+		if ( 
+			EVP_DecryptInit_ex(context.get(), EVP_aes_256_cbc(), nullptr, key.data(), iv.data())
+			!= 1
+		) throw std::runtime_error("Couldn't initialise decrypt operation");
+
+		int len1 = decrypted.size(), len2;
+		if(
+			EVP_DecryptUpdate(context.get(), decrypted.data(), &len1, encrypted_bytes.data(), encrypted_bytes.size())
+			!= 1
+		) throw std::runtime_error("Couldn't decrypt data");
+
+		len2 = len1;
+
+		if(
+			EVP_DecryptFinal_ex(context.get(), decrypted.data() + len1, &len2)
+			!= 1
+		) throw std::runtime_error("Couldn't finalise decryption");
+
+		decrypted.resize(len1 + len2);
+		EVP_cleanup();
+
+		return decrypted;
 	}
 
 	std::string hash(const std::string& str) {
@@ -75,12 +188,13 @@ namespace message {
 
 	std::string sign(const std::string& str) {
 		// TODO: I don't know the sizes required
-		uint8_t public_key_buffer[128];
+		char public_key_buffer[128];
 		std::vector<char> signed_msg(str.size() * 2 + 1);	// allocating 2*length + 1 size for the signature
 
-		sign_str(str.data(), signed_msg.data(), public_key_buffer.data());
+		auto signed_msg_len = sign_str(str.data(), signed_msg.data(), public_key_buffer);
+		signed_msg.resize(signed_msg_len);
 
-		return util::bytes_to_hex_string(signed_msg.data());
+		return util::bytes_to_hex_string({signed_msg.begin(),signed_msg.end()});
 	}
 }
 

@@ -25,19 +25,21 @@ include_directories("rust-lib")
 
 # These additional dependencies need to be linked for the C library or something... or atleast this CMake-Rust to work
 if (WIN32)
-target_link_libraries(client ws2_32 userenv advapi32)
-target_link_libraries(server ws2_32 userenv advapi32)
+	target_link_libraries(client ws2_32 userenv advapi32)
+	target_link_libraries(server ws2_32 userenv advapi32)
 elseif (APPLE)
-target_link_libraries(client m c System resolv)
-target_link_libraries(server m c System resolv)
+	target_link_libraries(client m c System resolv)
+	target_link_libraries(server m c System resolv)
 endif()
 
-find_package(openssl)
-find_package(ssl)
-find_package(crypto)
-find_package(dl)	# dlsym symbol not found error
+find_package(OpenSSL REQUIRED COMPONENTS SSL Crypto)
 find_package(Threads REQUIRED)
 
-target_link_libraries(client dl Threads::Threads ssl crypto cppzmq rust-lib)
-target_link_libraries(server Threads::Threads ssl crypto cppzmq rust-lib)
+target_link_libraries(client Threads::Threads OpenSSL::SSL OpenSSL::Crypto cppzmq rust-lib)
+# dlsym symbol not found error, remove this if it fails to find dl (libdl is provided by the GNU C library glibc)
+if (UNIX)
+	target_link_libraries(client dl)
+endif()
+
+target_link_libraries(server Threads::Threads OpenSSL::SSL OpenSSL::Crypto cppzmq rust-lib)
 

@@ -1,4 +1,5 @@
 #include <argparse/argparse.hpp>
+#include <cstdint>
 #include <stdexcept>
 #include <zmq.hpp>
 #include <iostream>
@@ -26,7 +27,11 @@ string encode_payload( const string &action, const string& msg ) {
 	} else if ( action == "sign" ) {
 		payload.append(message::sign(msg));
 	} else if ( action == "encrypt" ) {
-		payload.append(message::encode(msg));
+		auto encrypted_bytes = message::encrypt_bytes({
+			reinterpret_cast<const uint8_t*>(msg.data()),
+			reinterpret_cast<const uint8_t*>(msg.data() + msg.size())
+		});
+		payload.append(util::bytes_to_hex_string(encrypted_bytes.message));
 	} else throw std::runtime_error("No Such Action !");
 
 	return payload;
@@ -52,6 +57,8 @@ int main (int argc, const char *argv[]) {
 
 	auto action = to_lower_case( program.get<string>("action") );
 	auto message = program.get<string>("message");
+
+	std::cout << util::bytes_to_hex_string( util::get_random_bytes(16) ) << std::endl;
 
 	/*Now, we create the zmq context, and send the message*/
 	auto context = zmq::context_t{1};
