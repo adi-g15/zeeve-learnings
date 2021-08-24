@@ -1,4 +1,4 @@
-#include <argparse/argparse.hpp>
+#include "argparse.hpp"
 #include <cstdint>
 #include <stdexcept>
 #include <zmq.hpp>
@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "actions.hpp"
+#include "payload.pb.h"
 
 using std::string;
 
@@ -18,23 +19,40 @@ string to_lower_case(string&& str) {
 }
 
 string encode_payload( const string &action, const string& msg ) {
-	auto payload = "\"" + action + "\"";	// ie. payload is "<action>"message ... so it's easy to parse later
-
+	auto payload = Payload();
+	
 	if ( action == "encode" ) {
-		payload.append(message::encode(msg));
+		payload.set_action(AppliedAction::ENCODE);
+		
+		auto str = message::encode(msg);
+		payload.set_payload_str(str);
+
 	} else if ( action == "hash" ) {
-		payload.append(message::hash(msg));
+		payload.set_action(AppliedAction::HASH);
+
+		auto str = message::hash(msg);
+		payload.set_payload_str(str);
 	} else if ( action == "sign" ) {
-		payload.append(message::sign(msg));
+		payload.set_action(AppliedAction::SIGN);
+
+		auto str = message::sign(msg);
+		payload.set_payload_str(str);
 	} else if ( action == "encrypt" ) {
+		payload.set_action(AppliedAction::ENCRYPT);
+
 		auto encrypted_bytes = message::encrypt_bytes({
 			reinterpret_cast<const uint8_t*>(msg.data()),
-			reinterpret_cast<const uint8_t*>(msg.data() + msg.size())
+			reinterpret_cast<const uint8_t*>(msg.data()) + msg.size()
 		});
-		payload.append(util::bytes_to_hex_string(encrypted_bytes.message));
+		payload.set_payload_str( util::bytes_to_hex_string( encrypted_bytes.message ));
+		auto metadata = payload.mutable_metadata();
+		metadata->insert({
+			{"key", util::bytes_to_hex_string(encrypted_bytes.key )},
+			{"iv", util::bytes_to_hex_string(encrypted_bytes.IV) }
+		});
 	} else throw std::runtime_error("No Such Action !");
 
-	return payload;
+	return payload.SerializeAsString();
 }
 
 int main (int argc, const char *argv[]) {
@@ -57,8 +75,6 @@ int main (int argc, const char *argv[]) {
 
 	auto action = to_lower_case( program.get<string>("action") );
 	auto message = program.get<string>("message");
-
-	std::cout << util::bytes_to_hex_string( util::get_random_bytes(16) ) << std::endl;
 
 	/*Now, we create the zmq context, and send the message*/
 	auto context = zmq::context_t{1};

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+enum AppliedAction {
+	ENCODE=0;
+	HASH=1;
+	SIGN=2;
+	ENCRYPT=3;
+	CERTIFICATE=4;
+}
+
+message Payload {
+	optional AppliedAction action = 1;
+	optional string payload_str = 2;
+	map<string,string> metadata = 3;	// Additional data
+}
+

@@ -42,6 +42,26 @@ namespace util {
 
 		return ss.str();
 	}
+
+	/*We use the fact that, two chars in hex represent one byte*/
+	std::vector<uint8_t> hex_string_to_bytes(const std::string& data_str) {
+		auto bytes = std::vector<uint8_t>();
+
+		if( data_str.size() % 2 != 0 ) throw std::runtime_error("Invalid hex string for conversion into bytes, length MUST be even");
+
+		for (auto i = 0; i < data_str.size() - 1; i+=2)
+		{
+			bytes.push_back( std::strtol( data_str.substr(i,2).data(), nullptr, 16 ) );
+		}
+		
+		return bytes;
+	}
+
+	std::vector<uint8_t> hex_string_to_bytes(const std::vector<uint8_t>& data_str_bytes) {
+		auto c_str = reinterpret_cast<const char*>(data_str_bytes.data());
+
+		return hex_string_to_bytes( std::string( c_str, c_str + data_str_bytes.size()) );
+	}
 }
 
 namespace message {
@@ -52,7 +72,7 @@ namespace message {
 				});
 	}
 
-	std::string serialise (const std::map<std::string,std::string>& mapping) {
+	std::string serialise_map (const std::map<std::string,std::string>& mapping) {
 		std::string encoded = "";
 		for( auto& p : mapping ) {
 			/*assert that the data is okay to encode and can be decoded exactly same later*/
@@ -85,26 +105,23 @@ namespace message {
 		return out;
 	}
 
-	struct _Data {
+	struct _EncryptedData {
 		std::vector<uint8_t> key;
 		std::vector<uint8_t> IV;
-		std::vector<uint8_t> message;	/*Can be encrypted message, or decrypted*/
+		std::vector<uint8_t> message;
 	};
-	_Data encrypt_bytes(const std::vector<uint8_t>& bytes) {
-		using byte = uint8_t;
-
+	_EncryptedData encrypt_bytes(const std::vector<uint8_t>& bytes) {
 		ERR_load_crypto_strings();	// Load human readable error strings for libcrypto
 		EVP_add_cipher( EVP_aes_256_cbc() );	// Load the necessary cipher
 
 		constexpr int KEY_SIZE = 32;	// 256 BIT key... 32 bytes
-		constexpr int BLOCK_SIZE = 16;
-		constexpr int IV_SIZE = BLOCK_SIZE;	// 128 BIT... 16 bytes
+		constexpr int IV_SIZE = 16;	// 128 BIT... 16 bytes
 		// constexpr int MAX_PADDING = BLOCK_SIZE - 1;
 
 		auto key = util::get_random_bytes(KEY_SIZE); 
 		auto iv = util::get_random_bytes(IV_SIZE);	// Initialisation vector
 
-		auto cipher_text = std::vector<byte>(bytes.size() + BLOCK_SIZE);	// Cipher text expands upto BLOCK_SIZE
+		auto cipher_text = std::vector<uint8_t>(bytes.size() + 16);	// Cipher text expands upto BLOCK_SIZE
 		
 		using CIPHER_CTX = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
 
@@ -150,9 +167,9 @@ namespace message {
 		std::vector<uint8_t> decrypted( encrypted_bytes.size() );
 
 		using CIPHER_CTX = std::unique_ptr<EVP_CIPHER_CTX, decltype(&::EVP_CIPHER_CTX_free)>;
-		
+
 		auto context = CIPHER_CTX{ EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free };
-		
+
 		if (!context) throw std::runtime_error("Couldn't create context");
 
 		if ( 
