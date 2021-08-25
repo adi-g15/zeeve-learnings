@@ -1,0 +1,17 @@
+{
+  "name": "grpc-server",
+  "version": "0.0.1",
+  "description": "gRPC server in javascript",
+  "main": "index.js",
+  "repository": "https://github.com/adi-g15/crypto-testbed",
+  "author": "Aditya Gupta <adityag.ug19.cs@nitp.ac.in>",
+  "license": "Unlicense",
+  "scripts": {
+    "build-proto": "pushd ../proto && protoc --js_out=../grpc-server *.proto && popd || popd",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.3.7",
+    "@grpc/proto-loader": "^0.6.4"
+  }
+}

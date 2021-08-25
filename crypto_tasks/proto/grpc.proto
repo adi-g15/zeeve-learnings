@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "payload.proto";
+
+message Certificate {
+	optional string TODO = 1;
+}
+
+service gRPC_service {
+	rpc getCertificate(Payload) returns (Certificate) {};
+}
+

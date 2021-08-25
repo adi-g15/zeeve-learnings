@@ -1,12 +1,17 @@
-# Crypto... Learning
+# Crypto... Testbed
 
-A C++ Application, using the ZeroMQ library (a server & a client)... doing these things...
+A C++ Application, doing these things... with a lot of tech.
 
 Run `client --help` for help.
 
+![Design Plan](design.png)
+
 ## Testbed
 
-This also was a testbed application (so it's INTENTIONALLY more complex than it should be... though as always I did start very simple) for me to try some **co-existence** things:
+This is a testbed application (originally wasn't), so it's INTENTIONALLY much more complex than it should be... though as always I did start very simple at beginning.
+
+For me it's a place to try some **co-existence** things:
+
 * C++ code calls methods in Rust; Used build.rs for the first time in rust to create the bindings
 * CMake builds rust code too, first time
 * Rust code and C++ both using OpenSSL (Initially was doing that part in Rust, then wanted some fun... C++)... was a first time working with OpenSSL in C++
