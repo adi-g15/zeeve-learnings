@@ -18,3 +18,9 @@
 	url = https://github.com/hyperledger/sawtooth-explorer
 [submodule "sawtooth-explorer/"]
 	url = https://github.com/le99/sawtooth-explorer
+[submodule "crypto-tasks"]
+	path = crypto-tasks
+	url = https://github.com/adi-g15/crypto-testbed
+[submodule "custom-consensus-engine"]
+	path = custom-consensus-engine
+	url = https://github.com/adi-g15/custom-consensus-engine

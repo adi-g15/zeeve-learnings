@@ -5,16 +5,18 @@ on:
   workflow_dispatch: ~
 
 jobs:
-  strategy:
-    matrix:
-      submodule_path:
-        - sawtooth-core
-        - notes-repo
-        - custom-intkey
-        - the-os-cashier
-        # - sawtooth-sdk-rust # be it where it was, when i created the project
-  submodule_update:
+ submodule_update:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        submodule_path:
+          - sawtooth-core
+          - notes-repo
+          - custom-intkey
+          - the-os-cashier
+          - custom-consensus-engine
+          - crypto-tasks
+        # - sawtooth-sdk-rust # be it where it was, when i created the project
     steps:
       - uses: mheap/submodule-sync-action@v1
         with:
